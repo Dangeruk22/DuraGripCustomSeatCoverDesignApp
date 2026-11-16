@@ -1,0 +1,981 @@
+<div id="duragrip-builder"></div>
+
+<script>
+(() => {
+  const host = document.getElementById("duragrip-builder");
+  if (!host || host.shadowRoot) return;
+  const root = host.attachShadow({ mode: "open" });
+
+  root.innerHTML = `
+<style>
+:host{
+  display:block;
+  --lime:#c4f167;
+  --ink:#20221f;
+  --line:#dedfd8;
+  background:#f5f5f0;
+  color:var(--ink);
+  font:13px Arial,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+button,input,select,textarea{font:inherit}
+button,a,input,select,textarea{outline-offset:3px}
+button{cursor:pointer}
+button:focus-visible,a:focus-visible,input:focus-visible,
+select:focus-visible,textarea:focus-visible{
+  outline:3px solid #79b52b;
+}
+button:disabled{opacity:.5;cursor:wait}
+header{
+  min-height:78px;padding:15px 4%;
+  border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:15px;background:#fcfcf9;
+}
+.brand{display:flex;align-items:center;gap:14px;font-size:11px;font-weight:bold;letter-spacing:1.5px}
+.brand b{font-size:32px;font-style:italic;letter-spacing:-2px}
+.brand b span{color:#79b52b}
+.header-note{font-size:10px;letter-spacing:2px;color:#7c8177}
+.outline{
+  background:transparent;border:1px solid #cccfc5;
+  padding:11px 17px;border-radius:4px;font-weight:bold;
+}
+main{max-width:1600px;margin:auto;padding:35px 4% 0}
+.intro{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:28px}
+.eyebrow{font-size:10px;letter-spacing:1.5px;font-weight:bold;color:#70776b;margin:0 0 10px}
+h1{font-size:42px;line-height:1.1;margin:0 0 10px;letter-spacing:-1.5px}
+h1 em{color:#79836a}
+h2{font-size:25px;line-height:1.2;margin:0 0 8px}
+p{line-height:1.6}
+.intro p:last-child{margin:0;color:#7a7e73}
+.edition{font-size:11px;font-weight:bold;letter-spacing:1px;white-space:nowrap}
+.dot{display:inline-block;width:6px;height:6px;background:#8ab745;border-radius:50%;margin-right:8px}
+.edition small{display:block;text-align:right;color:#969b8f;font-size:9px;margin-top:9px}
+.studio{
+  display:grid;grid-template-columns:minmax(0,1.7fr) minmax(340px,1fr);
+  border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fcfcf9;
+}
+.canvas{background:#eaece5;min-width:0;display:flex;flex-direction:column}
+.canvas-top,.canvas-bottom{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:20px 25px;font-size:9px;letter-spacing:1px;color:#7b8374;
+}
+.canvas-top span:first-child{color:#434d3d;font-weight:bold}
+.artboard{
+  height:620px;position:relative;display:flex;align-items:center;justify-content:center;
+  background-image:radial-gradient(#a9b09e55 .7px,transparent .7px);
+  background-size:16px 16px;overflow:hidden;
+}
+.axis{position:absolute;left:50%;top:0;bottom:0;border-left:1px dashed #bcc3b3}
+#preview{
+  height:96%;width:78%;position:relative;transition:transform .25s;
+  filter:drop-shadow(0 14px 13px #242d211a);
+}
+#preview svg{width:100%;height:100%;overflow:visible}
+.zoomed #preview{transform:scale(1.25)}
+.annotation{
+  position:absolute;right:24px;writing-mode:vertical-rl;
+  font-size:9px;letter-spacing:2px;color:#929989;
+}
+.front{top:25px}
+.rear{bottom:25px}
+.canvas-bottom{margin-top:auto;padding:15px 25px;letter-spacing:0;font-size:10px;border-top:1px solid #dde1d5}
+.canvas-bottom button{
+  background:#f6f7f1;border:1px solid #d8ddcf;border-radius:4px;
+  width:32px;height:32px;font-size:20px;margin-left:5px;color:#626c58;
+}
+aside{border-left:1px solid var(--line);display:flex;flex-direction:column}
+.tabs{display:flex;border-bottom:1px solid var(--line);padding:14px 16px;gap:8px;background:#eef0e7}
+.tabs button{
+  flex:1;min-height:44px;padding:11px 7px;background:#fff;
+  border:1px solid #b8c1ac;border-radius:5px;color:#3b4732;
+  font-size:13px;font-weight:bold;white-space:nowrap;
+}
+.tabs button.active{color:#243019;background:#c4f167;border-color:#6e913d;box-shadow:inset 0 -2px 0 #6e913d}
+.tabs button:hover{background:#e1edcd}
+.tabs button.active:hover{background:#b9e959}
+.settings{padding:27px 28px;flex:1}
+.muted{color:#7b8471;font-size:11px;margin:0 0 22px}
+.parts{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:24px 0}
+.part{border:1px solid var(--line);border-radius:5px;background:#fff;padding:11px 3px;font-size:10px;color:#626d57}
+.part.active{border-color:#789c47;background:#f0f5e8;box-shadow:0 0 0 1px #789c47}
+.part i{display:block;width:23px;height:23px;border-radius:4px;margin:0 auto 8px;border:1px solid #0001}
+.palette-heading,.field-title{display:flex;justify-content:space-between;align-items:center;font-size:11px;margin-bottom:13px}
+.palette-heading span,.field-title span{font-size:9px;color:#7a846f}
+.palette{display:grid;grid-template-columns:repeat(8,1fr);gap:9px}
+.swatch{width:100%;aspect-ratio:1;border-radius:50%;border:1px solid #0002;max-width:32px;position:relative;padding:0}
+.swatch.selected:after{
+  content:"✓";position:absolute;inset:0;display:grid;place-items:center;
+  color:#fff;text-shadow:0 1px 4px #000;font-size:16px;
+}
+.swatch.selected{outline:2px solid #75826a;outline-offset:3px}
+.custom-colour{display:flex;align-items:center;gap:10px;margin:19px 0 0;font-size:11px;color:#626e57}
+.custom-colour input{width:26px;height:26px;padding:0;border:0;order:-1}
+.custom-colour span{margin-left:auto}
+.divider{border-top:1px solid var(--line);margin:24px 0}
+input[type=range]{width:100%;accent-color:#7ba345;height:4px}
+.range-label{display:flex;justify-content:space-between;color:#7f8875;font-size:9px;margin-top:10px}
+.check{display:flex;align-items:center;gap:8px;font-size:11px;margin:18px 0 0}
+.check input{accent-color:#7ba345;width:15px;margin:0}
+.texture-options{margin-top:12px;padding:1px 15px 12px;border:1px solid #d9e0cf;background:#f0f4e9;border-radius:5px}
+.texture-options p{font-size:10px;color:#6d7962;margin:10px 0 0}
+.export{border-top:1px solid var(--line);padding:20px 28px;background:#f8f9f3}
+.export>div{display:flex;justify-content:space-between;gap:10px;font-size:11px;align-items:center;margin-bottom:14px}
+.export>div span{font-size:9px;color:#7b866f}
+#download{
+  display:flex;justify-content:space-between;width:100%;background:var(--lime);
+  color:#253017;border:0;border-radius:4px;padding:15px 18px;font-weight:bold;font-size:12px;
+}
+.email-button{
+  display:block;width:100%;text-align:center;text-decoration:none;
+  border:1px solid #cbd3bf;background:#fff;border-radius:4px;
+  padding:12px 16px;margin-top:9px;font-weight:bold;font-size:11px;color:#354529;
+}
+.email-button:hover{background:#eef4e5}
+.export-help{font-size:10px;line-height:1.5;color:#6d7962;margin:10px 0 0}
+.text-button{border:0;background:none;color:#657256;display:block;margin:12px auto 0;font-size:10px;padding:8px}
+footer{display:flex;gap:24px;padding:24px 0;font-size:9px;letter-spacing:.6px;color:#77846b}
+footer b{color:#5a694c;margin-right:9px}
+footer small{margin-left:auto;font-size:8px}
+.field{display:block;font-size:11px;font-weight:normal;margin:16px 0}
+.field input:not([type=color]),select,textarea{
+  display:block;width:100%;padding:11px;border:1px solid var(--line);
+  border-radius:4px;background:#fff;margin-top:8px;color:#36402d;
+}
+.field input[type=color]{display:block;margin-top:8px}
+.notice{background:#eef2e6;padding:15px;color:#657452;font-size:11px;line-height:1.6;margin-top:25px}
+.small{font-size:10px}
+#toast{
+  position:fixed;z-index:999999;bottom:25px;left:50%;transform:translateX(-50%);
+  max-width:90vw;padding:13px 22px;border-radius:5px;background:#222d1b;
+  color:#fff;opacity:0;transition:opacity .2s;pointer-events:none;
+}
+#toast.show{opacity:1}
+[data-part]{cursor:pointer}
+[data-part]:hover{filter:brightness(1.09)}
+dialog{
+  max-width:460px;width:calc(100% - 32px);border:1px solid #c8d1bc;
+  border-radius:9px;background:#fcfcf9;color:#283222;padding:26px;
+}
+dialog::backdrop{background:#18201288}
+dialog p{font-size:12px;line-height:1.65}
+#share-jpeg{background:#c4f167}
+@media(min-width:1500px){.artboard{height:710px}}
+@media(max-width:850px){
+  header{min-height:68px}.header-note,.edition{display:none}
+  main{padding-top:25px}h1{font-size:32px}
+  .studio{grid-template-columns:1fr}.artboard{height:530px}
+  aside{border-left:0;border-top:1px solid var(--line)}
+  footer{gap:15px;font-size:7px}footer small{display:none}
+  .settings{padding:25px}.swatch{width:32px}
+  .canvas-top{font-size:8px}.brand{font-size:9px}.brand b{font-size:29px}
+}
+</style>
+
+<header>
+  <div class="brand"><b>MX<span> /</span></b> COVER STUDIO</div>
+  <span class="header-note">BUILT FOR YOUR RIDE.</span>
+  <button id="save" class="outline" type="button">Save design ↗</button>
+</header>
+
+<main>
+  <div class="intro">
+    <div>
+      <p class="eyebrow">The DuraGrip seat cover builder</p>
+      <h1>Your Seat. <em>Your Design.</em></h1>
+      <p>Pick your colours. Add your name. Make it yours.</p>
+    </div>
+    <div class="edition">
+      <span class="dot"></span> GRIPPER / RIBBED
+      <small>DESIGN STUDIO — 01</small>
+    </div>
+  </div>
+
+  <div class="studio">
+    <section class="canvas">
+      <div class="canvas-top">
+        <span><i class="dot"></i> LIVE PREVIEW</span>
+        <span>YOUR TEMPLATE / FLAT VIEW</span>
+      </div>
+      <div class="artboard">
+        <div class="axis"></div>
+        <div id="preview"></div>
+        <span class="annotation front">FRONT ↓</span>
+        <span class="annotation rear">REAR ↓</span>
+      </div>
+      <div class="canvas-bottom">
+        <span>Click a panel to edit its colour</span>
+        <div>
+          <button id="zoom" type="button" aria-label="Toggle larger preview">＋</button>
+          <button id="reset" type="button" title="Reset design">↺</button>
+        </div>
+      </div>
+    </section>
+
+    <aside>
+      <div class="tabs" role="tablist" aria-label="Design settings">
+        <button type="button" data-tab="colours" class="active" role="tab">01 Colours</button>
+        <button type="button" data-tab="rider" role="tab">02 Rider id</button>
+        <button type="button" data-tab="bike" role="tab">03 Bike type</button>
+      </div>
+
+      <div class="settings">
+        <section id="colours" class="tab-panel">
+          <p class="eyebrow">MAKE IT YOURS</p>
+          <h2>Set the tone.</h2>
+          <p class="muted">Choose a panel, then find your colour.</p>
+          <div id="parts" class="parts"></div>
+          <div class="palette-heading">
+            <b id="colour-name"></b><span id="hex"></span>
+          </div>
+          <div id="palette" class="palette"></div>
+          <label class="custom-colour">
+            Custom colour
+            <input type="color" id="custom" value="#e62e2e">
+            <span>↗</span>
+          </label>
+
+          <div class="divider"></div>
+          <div class="field-title">
+            <b>Rib configuration</b><span id="rib-label">5 RIBS</span>
+          </div>
+          <input id="ribs" type="range" min="0" max="5" value="5" aria-label="Number of ribs">
+          <div class="range-label"><span>Smooth</span><span>Maximum grip</span></div>
+
+          <label class="check">
+            <input type="checkbox" id="texture" checked> Show gripper texture
+          </label>
+          <div id="texture-options" class="texture-options">
+            <label class="check">
+              <input type="checkbox" id="texture-top" checked> Top cloth
+            </label>
+            <label class="check">
+              <input type="checkbox" id="texture-sides"> Both side panels
+            </label>
+            <p>Side texture is always applied to both panels together.</p>
+          </div>
+        </section>
+
+        <section id="rider" class="tab-panel" hidden>
+          <p class="eyebrow">YOUR IDENTITY</p>
+          <h2>Stand out on track.</h2>
+          <p class="muted">Your rider details update on the template.</p>
+          <label class="field">First name
+            <input id="first" maxlength="14" value="PERCY">
+          </label>
+          <label class="field">Last name
+            <input id="last" maxlength="14" value="">
+          </label>
+          <label class="field">Race number
+            <input id="number" maxlength="3" inputmode="numeric" value="696">
+          </label>
+          <label class="check">
+            <input type="checkbox" id="badge" checked> Show rider name &amp; number
+          </label>
+          <label class="field">Rider text colour
+            <input id="text-colour" type="color" value="#ffffff">
+          </label>
+          <div class="divider"></div>
+          <label class="field">Personal logo
+            <input id="logo" type="file" accept="image/png,image/jpeg,image/webp">
+          </label>
+          <p class="muted small">PNG, JPG or WebP, up to 2 MB. Placed at the rear of your cover.</p>
+          <button id="remove-logo" class="outline" type="button">Remove logo</button>
+        </section>
+
+        <section id="bike" class="tab-panel" hidden>
+          <p class="eyebrow">THE PERFECT MATCH</p>
+          <h2>Made for your bike.</h2>
+          <p class="muted">Include your bike details in your design brief.</p>
+          <label class="field">Bike brand
+            <select id="make">
+              <option value="">Select brand</option>
+              <option>Honda</option><option>Kawasaki</option>
+              <option>Suzuki</option><option>Yamaha</option>
+              <option>Beta</option><option>BMW</option>
+              <option>CCM</option><option>Cobra</option>
+              <option>Ducati</option><option>Fantic</option>
+              <option>GasGas</option><option>GPX</option>
+              <option>Husaberg</option><option>Husqvarna</option>
+              <option>Kove</option><option>KTM</option>
+              <option>Maico</option><option>Revvi</option>
+              <option>Rieju</option><option>Scorpa</option>
+              <option>Sherco</option><option>Stark Future</option>
+              <option>SWM</option><option>TM Racing</option>
+              <option>Triumph</option><option>Vertemati</option>
+              <option>Voge</option><option>Other</option>
+            </select>
+          </label>
+          <label class="field">Model
+            <input id="model" placeholder="KX 250" maxlength="60">
+          </label>
+          <label class="field">Year
+            <input id="year" type="number" min="1980" max="2030" placeholder="2025">
+          </label>
+          <label class="field">Design notes
+            <textarea id="notes" rows="4" maxlength="1000"
+              placeholder="Anything else for your design brief?"></textarea>
+          </label>
+          <div class="notice">
+            Export your design to discuss fit, materials and pricing with Danger UK.
+          </div>
+        </section>
+      </div>
+
+      <div class="export">
+        <div><b>Your custom cover</b><span>Design it. Save it. Ride it.</span></div>
+        <button id="download" type="button">Export design · JPEG <span>↓</span></button>
+        <a id="email-design" class="email-button" href="mailto:dangeruk22@outlook.com">
+          Email for a Design Proof and Price ↗
+        </a>
+        <p class="export-help">
+          Send your finished design to dangeruk22@outlook.com for a design proof and price.
+        </p>
+        <button id="brief" class="text-button" type="button">Download specification ↓</button>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    <span><b>01</b> CHOOSE YOUR COLOURS</span>
+    <span><b>02</b> ADD YOUR IDENTITY</span>
+    <span><b>03</b> EXPORT YOUR DESIGN</span>
+    <small>YOUR TEMPLATE. YOUR RULES.</small>
+  </footer>
+</main>
+
+<dialog id="email-dialog">
+  <h2>Get your design proof and price</h2>
+  <p>Send your final design to <b>dangeruk22@outlook.com</b>.</p>
+  <p id="email-status" role="status">Preparing your JPEG…</p>
+  <button id="share-jpeg" class="email-button" type="button" hidden>
+    Share JPEG and design details
+  </button>
+  <p id="share-help" hidden>
+    Choose your email app, then enter dangeruk22@outlook.com as the recipient.
+    The JPEG is included in the share request.
+  </p>
+  <button id="email-download" class="email-button" type="button" disabled>
+    Download final JPEG
+  </button>
+  <a id="email-draft" class="email-button" href="mailto:dangeruk22@outlook.com">
+    Open addressed email draft ↗
+  </a>
+  <p>Using the addressed email draft? Attach the downloaded JPEG manually before sending.</p>
+  <button id="email-close" class="text-button" type="button">Close</button>
+</dialog>
+
+<div id="toast" role="status"></div>
+`;
+
+  const $ = id => root.getElementById(id);
+  const all = selector => root.querySelectorAll(selector);
+  const storageKey = "duragrip-seat-cover-design";
+
+  const defaultLogo = `
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 90">
+  <g fill="#fff">
+    <path fill-rule="evenodd"
+      d="M8 10H76L90 24V44L78 54L96 80H71L53 56H28V80H8ZM28 27V40H67L70 37V30L67 27Z"/>
+    <path d="M150 5L200 80H100Z"/>
+    <path fill-rule="evenodd"
+      d="M210 10H270L292 30V60L270 80H210ZM230 28V62H262L272 52V38L262 28Z"/>
+  </g>
+</svg>`;
+
+  const defaults = {
+    left: "#e62e2e",
+    right: "#e62e2e",
+    top: "#20201d",
+    ribsColour: "#ffffff",
+    trim: "#ffffff",
+    first: "PERCY",
+    last: "",
+    number: "696",
+    text: "#ffffff",
+    ribs: 5,
+    texture: true,
+    textureTop: true,
+    textureSides: false,
+    badge: true,
+    make: "",
+    model: "",
+    year: "",
+    notes: "",
+    logo: "data:image/svg+xml;base64," + btoa(defaultLogo)
+  };
+
+  let state = { ...defaults };
+
+  try {
+    const saved = JSON.parse(localStorage.getItem(storageKey));
+    if (saved && typeof saved === "object") state = { ...defaults, ...saved };
+  } catch {}
+
+  state.ribs = Math.max(0, Math.min(5, Number(state.ribs) || 0));
+
+  let selected = "left";
+  let toastTimer;
+  let emailFile = null;
+  let emailDetails = null;
+
+  const parts = [
+    ["left", "Left side"],
+    ["top", "Top panel"],
+    ["right", "Right side"],
+    ["ribsColour", "Ribs"]
+  ];
+
+  const colours = [
+    ["#79b52b", "Kawasaki green", "Green"],
+    ["#20201d", "Carbon black", "Black"],
+    ["#ffffff", "White", "White"],
+    ["#e62e2e", "Race red", "Red"],
+    ["#f46826", "KTM orange", "Orange"],
+    ["#1675dc", "Yamaha blue", "Blue"],
+    ["#f6ce2b", "Suzuki yellow", "Yellow"],
+    ["#8c44b7", "Purple", "Purple"],
+    ["#c1ee42", "Neon lime", "Neon Lime"],
+    ["#164e3c", "Forest green", "Dark Green"],
+    ["#a6afb4", "Cool grey", "Grey"],
+    ["#283764", "Midnight blue", "Dark Blue"],
+    ["#f38ab6", "Pink", "Pink"],
+    ["#17b9b4", "Turquoise", "Turquoise"],
+    ["#b2a28a", "Sand", "Sand"],
+    ["#6e293c", "Burgundy", "Burgundy"]
+  ];
+
+  const clothPaths = {
+    left: "M448 12 L315 39 L309 49 L302 41 L294 43 Q283 54 270 84 L29 636 Q-12 752 3 866 L224 1929 Q236 1966 292 1998 Q359 2031 397 2035 L404 2033 Q377 1010 448 12Z",
+    right: "M742 12 L875 39 L881 49 L888 41 L896 43 Q907 54 920 84 L1161 636 Q1202 752 1187 866 L966 1929 Q954 1966 898 1998 Q831 2031 793 2035 L786 2033 Q813 1010 742 12Z",
+    top: "M496 12 Q555 1 591 0 L596 7 L601 0 Q638 1 696 12 Q782 937 750 2032 Q653 2048 596 2048 Q538 2048 445 2032 Q405 1000 496 12Z"
+  };
+
+  const esc = value => String(value).replace(/[&<>"']/g, character => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&apos;"
+  }[character]));
+
+  function panelBounds(y) {
+    function point(a, b, c, t) {
+      return (1 - t) * (1 - t) * a + 2 * (1 - t) * t * b + t * t * c;
+    }
+
+    function edge(xs, ys) {
+      let lo = 0;
+      let hi = 1;
+
+      for (let i = 0; i < 40; i++) {
+        const t = (lo + hi) / 2;
+        if (point(...ys, t) < y) lo = t;
+        else hi = t;
+      }
+
+      return point(...xs, (lo + hi) / 2);
+    }
+
+    const left = edge([496, 405, 445], [12, 1000, 2032]);
+    const right = edge([696, 782, 750], [12, 937, 2032]);
+
+    return { left, right, center: (left + right) / 2, width: right - left };
+  }
+
+  function riderLine(value, y, size, width, spacing = 1) {
+    if (!value) return "";
+    const panel = panelBounds(y - size * .35);
+
+    return `<text x="${panel.center}" y="${y}" font-size="${size}"
+      letter-spacing="${spacing}"
+      textLength="${Math.min(width, panel.width * .86)}"
+      lengthAdjust="spacingAndGlyphs">${esc(value)}</text>`;
+  }
+
+  function logoMarkup() {
+    if (!state.logo) return "";
+    const panel = panelBounds(1745);
+    const width = panel.width * .9;
+
+    return `<image x="${panel.center - width / 2}" y="1540"
+      width="${width}" height="410" preserveAspectRatio="xMidYMid meet"
+      href="${esc(state.logo)}"/>`;
+  }
+
+  function texturePattern(key) {
+    const hex = state[key];
+    const rgb = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+    const dark = rgb[0] * .2126 + rgb[1] * .7152 + rgb[2] * .0722 < 135;
+
+    return `<pattern id="grip-${key}" width="14" height="14"
+      patternUnits="userSpaceOnUse">
+      <circle cx="4" cy="4" r="2.7"
+        fill="${dark ? "#d1d5d0" : "#20251e"}"
+        opacity="${dark ? ".32" : ".23"}"/>
+      <circle cx="4" cy="5" r="1.2"
+        fill="${dark ? "#ffffff" : "#000000"}" opacity=".12"/>
+    </pattern>`;
+  }
+
+  function textureOverlay() {
+    if (!state.texture) return "";
+
+    const panels = [
+      ...(state.textureTop ? ["top"] : []),
+      ...(state.textureSides ? ["left", "right"] : [])
+    ];
+
+    return panels.map(key => `<path fill="url(#grip-${key})"
+      pointer-events="none" d="${clothPaths[key]}"/>`).join("");
+  }
+
+  function svg() {
+    const panels = ["left", "right", "top"].map(key =>
+      `<path data-part="${key}" fill="${state[key]}" d="${clothPaths[key]}"/>`
+    ).join("");
+
+    const rider = state.badge
+      ? riderLine(state.first, 254, 30, Math.max(130, state.first.length * 18), 2)
+        + riderLine(state.last, 292, 30, Math.max(115, state.last.length * 18), 2)
+        + riderLine(state.number, 407, 132, Math.max(90, state.number.length * 83), 0)
+      : "";
+
+    const ribs = Array.from({ length: Number(state.ribs) }, (_, i) => {
+      const y = 784 + i * (state.ribs > 1 ? 670 / (state.ribs - 1) : 0);
+      return `<rect x="489" y="${y}" width="214" height="53" rx="11"/>`;
+    }).join("");
+
+    return `<svg xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 1190 2048" aria-label="Custom seat cover design">
+      <defs>${["top", "left", "right"].map(texturePattern).join("")}</defs>
+      <g stroke="${state.trim}" stroke-width="1">${panels}</g>
+      ${textureOverlay()}
+      <g fill="${state.text}" text-anchor="middle"
+        font-family="Arial,sans-serif" font-style="italic" font-weight="900">
+        ${rider}
+      </g>
+      <g data-part="ribsColour" fill="${state.ribsColour}">${ribs}</g>
+      ${logoMarkup()}
+    </svg>`;
+  }
+
+  function drawParts() {
+    $("parts").innerHTML = parts.map(([key, name]) =>
+      `<button type="button" class="part ${selected === key ? "active" : ""}"
+        data-select="${key}" aria-pressed="${selected === key}">
+        <i style="background:${state[key]}"></i>${name}
+      </button>`
+    ).join("");
+
+    $("parts").querySelectorAll("button").forEach(button => {
+      button.onclick = () => {
+        selected = button.dataset.select;
+        drawParts();
+        drawPalette();
+      };
+    });
+  }
+
+  function drawPalette() {
+    $("palette").innerHTML = colours.map(([hex, name]) =>
+      `<button type="button"
+        class="swatch ${state[selected].toLowerCase() === hex ? "selected" : ""}"
+        title="${name}" aria-label="${name}"
+        aria-pressed="${state[selected].toLowerCase() === hex}"
+        style="background:${hex}" data-colour="${hex}"></button>`
+    ).join("");
+
+    $("palette").querySelectorAll("button").forEach(button => {
+      button.onclick = () => {
+        state[selected] = button.dataset.colour;
+        render();
+      };
+    });
+
+    $("colour-name").textContent =
+      colours.find(colour => colour[0] === state[selected].toLowerCase())?.[1]
+      || "Custom colour";
+
+    $("hex").textContent = state[selected].toUpperCase();
+    $("custom").value = state[selected];
+  }
+
+  function colourName(hex) {
+    const palette = colours.map(([value, label, name]) => [value, name]).concat([
+      ["#000000", "Black"],
+      ["#0000ff", "Blue"],
+      ["#ffff00", "Yellow"],
+      ["#ff0000", "Red"],
+      ["#008000", "Green"],
+      ["#000080", "Dark Blue"],
+      ["#808080", "Grey"],
+      ["#add8e6", "Light Blue"],
+      ["#964b00", "Brown"],
+      ["#ffb6c1", "Light Pink"],
+      ["#800080", "Purple"]
+    ]);
+
+    const rgb = value => [1, 3, 5].map(i => parseInt(value.slice(i, i + 2), 16));
+    const input = rgb(hex);
+    let nearest = palette[0];
+    let best = Infinity;
+
+    for (const entry of palette) {
+      const distance = rgb(entry[0]).reduce(
+        (sum, value, i) => sum + (value - input[i]) ** 2, 0
+      );
+
+      if (distance < best) {
+        best = distance;
+        nearest = entry;
+      }
+    }
+
+    return nearest[1];
+  }
+
+  function emailContent() {
+    const subject = `Design Proof and Price — MX seat cover — ${
+      [state.first, state.last].filter(Boolean).join(" ")
+    }${state.number ? " #" + state.number : ""}`;
+
+    const texture = state.texture
+      ? [
+          state.textureTop ? "Top cloth" : "",
+          state.textureSides ? "Both sides" : ""
+        ].filter(Boolean).join(", ") || "None"
+      : "None";
+
+    const body = [
+      "Hi Danger UK,",
+      "",
+      "Please provide a design proof and price for my custom seat cover design.",
+      "",
+      `Rider: ${state.first} ${state.last}`.trim(),
+      `Race number: ${state.number}`,
+      `Bike: ${[state.make, state.model, state.year].filter(Boolean).join(" ") || "Not specified"}`,
+      `Left side: ${colourName(state.left)}`,
+      `Right side: ${colourName(state.right)}`,
+      `Top panel: ${colourName(state.top)}`,
+      `Ribs: ${state.ribs}, colour ${colourName(state.ribsColour)}`,
+      `Gripper texture: ${texture}`,
+      "",
+      `Notes: ${state.notes || "None"}`
+    ].join("\n");
+
+    return { subject, body };
+  }
+
+  function updateEmailLink() {
+    const { subject, body } = emailContent();
+    const attachmentReminder =
+      "\n\n[Please attach the JPEG downloaded from the studio before sending.]";
+
+    const href = "mailto:dangeruk22@outlook.com?subject="
+      + encodeURIComponent(subject)
+      + "&body=" + encodeURIComponent(body + attachmentReminder);
+
+    $("email-design").href = href;
+    $("email-draft").href = href;
+  }
+
+  function render() {
+    $("texture-options").hidden = !state.texture;
+    $("preview").innerHTML = svg();
+    $("rib-label").textContent = state.ribs + " RIBS";
+    drawParts();
+    drawPalette();
+    updateEmailLink();
+  }
+
+  function toast(message) {
+    $("toast").textContent = message;
+    $("toast").classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $("toast").classList.remove("show"), 3500);
+  }
+
+  function tab(id) {
+    all("[data-tab]").forEach(button => {
+      const active = button.dataset.tab === id;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-selected", String(active));
+    });
+
+    all(".tab-panel").forEach(panel => {
+      panel.hidden = panel.id !== id;
+    });
+  }
+
+  all("[data-tab]").forEach(button => {
+    button.onclick = () => tab(button.dataset.tab);
+  });
+
+  $("preview").onclick = event => {
+    const panel = event.target.closest("[data-part]");
+    if (!panel) return;
+    selected = panel.dataset.part;
+    tab("colours");
+    drawParts();
+    drawPalette();
+  };
+
+  $("custom").oninput = event => {
+    state[selected] = event.target.value;
+    render();
+  };
+
+  const fields = {
+    first: "first",
+    last: "last",
+    number: "number",
+    "text-colour": "text",
+    ribs: "ribs",
+    texture: "texture",
+    "texture-top": "textureTop",
+    "texture-sides": "textureSides",
+    badge: "badge",
+    make: "make",
+    model: "model",
+    year: "year",
+    notes: "notes"
+  };
+
+  function sync() {
+    for (const [id, key] of Object.entries(fields)) {
+      const element = $(id);
+      if (element.type === "checkbox") element.checked = state[key];
+      else element.value = state[key];
+    }
+  }
+
+  for (const [id, key] of Object.entries(fields)) {
+    $(id).oninput = event => {
+      state[key] = event.target.type === "checkbox"
+        ? event.target.checked
+        : event.target.value;
+
+      if (key === "ribs") {
+        state.ribs = Math.max(0, Math.min(5, Number(state.ribs) || 0));
+        event.target.value = state.ribs;
+      }
+
+      if (key === "number") {
+        state.number = state.number.replace(/\D/g, "").slice(0, 3);
+        event.target.value = state.number;
+      }
+
+      render();
+    };
+  }
+
+  $("save").onclick = () => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+      toast("Design saved in this browser.");
+    } catch {
+      toast("Storage full. Export your design to keep it.");
+    }
+  };
+
+  $("reset").onclick = () => {
+    state = { ...defaults };
+    selected = "left";
+    sync();
+    render();
+    toast("Restored the default PERCY / 696 design.");
+  };
+
+  $("zoom").onclick = () => {
+    root.querySelector(".artboard").classList.toggle("zoomed");
+  };
+
+  function download(blob, name) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = name;
+    anchor.style.display = "none";
+    root.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }
+
+  async function createJpeg() {
+    const markup = svg();
+    const url = URL.createObjectURL(
+      new Blob([markup], { type: "image/svg+xml;charset=utf-8" })
+    );
+
+    let image;
+
+    try {
+      image = await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error("Could not render design"));
+        img.src = url;
+      });
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 2380;
+    canvas.height = 4096;
+
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas unavailable");
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+    return await new Promise((resolve, reject) => {
+      canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(new Error("JPEG encoding failed")),
+        "image/jpeg",
+        .95
+      );
+    });
+  }
+
+  function jpegName() {
+    return `DangerUK-MX-cover-${state.number || "custom"}.jpg`;
+  }
+
+  $("download").onclick = async () => {
+    $("download").disabled = true;
+
+    try {
+      download(await createJpeg(), jpegName());
+      toast("JPEG downloaded. Attach it when emailing your design.");
+    } catch (error) {
+      console.error(error);
+      toast("JPEG export failed. Please try again.");
+    } finally {
+      $("download").disabled = false;
+    }
+  };
+
+  $("email-design").onclick = async event => {
+    event.preventDefault();
+    emailFile = null;
+    $("email-download").disabled = true;
+    $("share-jpeg").hidden = true;
+    $("share-help").hidden = true;
+    $("email-status").textContent = "Preparing your JPEG…";
+
+    updateEmailLink();
+
+    const { subject, body } = emailContent();
+    emailDetails = {
+      title: subject,
+      text: "Send to: dangeruk22@outlook.com\n\n" + body
+    };
+
+    $("email-dialog").showModal();
+
+    try {
+      emailFile = new File([await createJpeg()], jpegName(), {
+        type: "image/jpeg"
+      });
+
+      $("email-download").disabled = false;
+
+      let supportsSharing = false;
+
+      try {
+        supportsSharing = Boolean(
+          navigator.share &&
+          navigator.canShare &&
+          navigator.canShare({ files: [emailFile] })
+        );
+      } catch {}
+
+      $("share-jpeg").hidden = !supportsSharing;
+      $("share-help").hidden = !supportsSharing;
+
+      $("email-status").textContent = supportsSharing
+        ? "Your JPEG is ready. Share it through your email app, or download it and use the addressed email draft."
+        : "Your JPEG is ready. Download it, open the addressed email draft, and attach the JPEG before sending.";
+    } catch (error) {
+      console.error(error);
+      $("email-status").textContent =
+        "Could not prepare your JPEG. Close this window and try again.";
+    }
+  };
+
+  $("email-download").onclick = () => {
+    if (emailFile) download(emailFile, emailFile.name);
+  };
+
+  $("share-jpeg").onclick = async () => {
+    if (!emailFile) return;
+
+    try {
+      await navigator.share({ files: [emailFile], ...emailDetails });
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        $("email-status").textContent =
+          "Sharing is unavailable. Download the JPEG, open the addressed email draft, and attach the file.";
+      }
+    }
+  };
+
+  $("email-close").onclick = () => $("email-dialog").close();
+
+  $("brief").onclick = () => {
+    const { logo, ...specification } = state;
+
+    download(
+      new Blob([
+        JSON.stringify({
+          project: "DuraGrip Seat Cover",
+          ...specification,
+          customLogo: Boolean(logo)
+        }, null, 2)
+      ], { type: "application/json" }),
+      "DuraGrip-cover-specification.json"
+    );
+  };
+
+  $("logo").onchange = event => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (
+      !["image/png", "image/jpeg", "image/webp"].includes(file.type) ||
+      file.size > 2 * 1024 * 1024
+    ) {
+      toast("Choose a PNG, JPG or WebP under 2 MB.");
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      state.logo = reader.result;
+      render();
+      toast("Logo added to your cover.");
+    };
+
+    reader.onerror = () => toast("Could not read that logo. Please try another file.");
+    reader.readAsDataURL(file);
+  };
+
+  $("remove-logo").onclick = () => {
+    state.logo = "";
+    $("logo").value = "";
+    render();
+  };
+
+  sync();
+  tab("colours");
+  render();
+})();
+</script>
